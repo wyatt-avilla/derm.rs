@@ -9,6 +9,8 @@ use pathfinder_geometry::vector::{Vector2F, Vector2I};
 
 use font_kit::handle::Handle;
 
+use image::{GenericImageView, Pixel};
+
 fn print_char(font: &Font, glyph_id: u32, canvas_size: u16) -> Result<(), Box<dyn Error>> {
     let mut canvas = Canvas::new(Vector2I::splat(i32::from(canvas_size)), Format::A8);
 
@@ -31,6 +33,28 @@ fn print_char(font: &Font, glyph_id: u32, canvas_size: u16) -> Result<(), Box<dy
         }
     }
     println!();
+
+    Ok(())
+}
+
+fn print_image(path_str: &str) -> Result<(), Box<dyn Error>> {
+    let img = image::open(path_str)?;
+    println!("dimensions {:?}x{:?}", img.width(), img.height());
+
+    for (i, (_x, _y, channels)) in img.grayscale().pixels().enumerate() {
+        let rgb = channels.to_rgb();
+        let pixel_value = rgb.channels()[0];
+
+        if pixel_value > 245 {
+            print!(" . ");
+        } else {
+            print!("{pixel_value}");
+        }
+
+        if i % img.width() as usize == 0 {
+            println!();
+        }
+    }
 
     Ok(())
 }
@@ -62,6 +86,8 @@ fn main() -> Result<(), Box<dyn Error>> {
 
     print_char(&hask, hask.glyph_for_char('█').unwrap(), 44)?;
     print_char(&jp, jp.glyph_for_char('漢').unwrap(), 44)?;
+
+    print_image("src/images/smiley.png")?;
 
     Ok(())
 }

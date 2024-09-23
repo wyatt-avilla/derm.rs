@@ -1,7 +1,6 @@
 use std::error::Error;
 
 use font_kit::canvas::{Canvas, Format, RasterizationOptions};
-use font_kit::error::GlyphLoadingError;
 use font_kit::font::Font;
 use font_kit::hinting::HintingOptions;
 use font_kit::source::SystemSource;
@@ -10,27 +9,28 @@ use pathfinder_geometry::vector::{Vector2F, Vector2I};
 
 use font_kit::handle::Handle;
 
-fn print_char(font: &Font, glyph_id: u32) -> Result<(), GlyphLoadingError> {
-    println!("{glyph_id} ↓");
-    let special_number = 44; // in the example snippet, idk yet
-    let mut canvas = Canvas::new(Vector2I::splat(special_number), Format::A8);
+fn print_char(font: &Font, glyph_id: u32, canvas_size: u16) -> Result<(), Box<dyn Error>> {
+    let mut canvas = Canvas::new(Vector2I::splat(i32::from(canvas_size)), Format::A8);
+
+    let vert_trans_fact = f32::from(canvas_size) * 0.10;
     font.rasterize_glyph(
         &mut canvas,
         glyph_id,
-        special_number as f32,
-        // x, y transform
-        Transform2F::from_translation(Vector2F::new(0.0, special_number as f32 - 5.0)),
+        f32::from(canvas_size),
+        Transform2F::from_translation(Vector2F::new(0.0, f32::from(canvas_size) - vert_trans_fact)),
         HintingOptions::None,
         RasterizationOptions::GrayscaleAa,
     )?;
+
+    println!("{glyph_id} ↓");
     for (i, val) in canvas.pixels.iter().enumerate() {
-        if i % special_number as usize == 0 {
-            print!("\n");
+        if i % canvas_size as usize == 0 {
+            println!();
         } else {
             print!("{val:<3}");
         }
     }
-    print!("\n");
+    println!();
 
     Ok(())
 }
@@ -60,8 +60,8 @@ fn main() -> Result<(), Box<dyn Error>> {
     println!("{} contains {} chars", hask.full_name(), hask.glyph_count());
     println!("{} contains {} chars", jp.full_name(), jp.glyph_count());
 
-    print_char(&hask, hask.glyph_for_char('█').unwrap())?;
-    print_char(&jp, jp.glyph_for_char('漢').unwrap())?;
+    print_char(&hask, hask.glyph_for_char('█').unwrap(), 44)?;
+    print_char(&jp, jp.glyph_for_char('漢').unwrap(), 44)?;
 
     Ok(())
 }

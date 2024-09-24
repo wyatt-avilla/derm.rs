@@ -6,4 +6,5 @@ edition = "2021"
 [dependencies]
 font-kit = "0.14.2"
 image = "0.25.2"
+itertools = "0.13.0"
 pathfinder_geometry = "0.5.1"

@@ -1,5 +1,4 @@
-use image::{DynamicImage, GenericImageView, Pixel, SubImage};
-use std::error::Error;
+use image::{DynamicImage, GenericImageView, SubImage};
 use std::vec::Vec;
 
 // row major traversal
@@ -52,26 +51,4 @@ pub fn img_partitions_from(
             None
         })
         .collect()
-}
-
-pub fn print_image(path_str: &str) -> Result<(), Box<dyn Error>> {
-    let img = image::open(path_str)?;
-    println!("dimensions {:?}x{:?}", img.width(), img.height());
-
-    for (i, (_x, _y, channels)) in img.grayscale().pixels().enumerate() {
-        let rgb = channels.to_rgb();
-        let pixel_value = rgb.channels()[0];
-
-        if pixel_value > 245 {
-            print!(" . ");
-        } else {
-            print!("{pixel_value}");
-        }
-
-        if i % img.width() as usize == 0 {
-            println!();
-        }
-    }
-
-    Ok(())
 }

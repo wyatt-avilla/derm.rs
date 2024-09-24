@@ -13,6 +13,11 @@ use image::{DynamicImage, GenericImageView, Pixel, SubImage};
 
 use std::vec::Vec;
 
+mod similarity;
+use similarity::hausdorff::{self, distance};
+
+use std::collections::HashSet;
+
 // row major traversal
 fn img_partitions_from(
     img: &DynamicImage,

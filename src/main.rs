@@ -36,7 +36,7 @@ fn main() -> Result<(), Box<dyn Error>> {
         RasterizationOptions::GrayscaleAa,
     )?;
 
-    print_to_console(&canvas.pixels.iter(), canvas_size as usize, |&x| x > 100);
+    print_to_console(&canvas.pixels.iter(), canvas.stride, |&x| x > 100);
 
     let img = image::open("src/images/smiley.png")?;
     let _sub_images = img_partitions_from(&img, 25, 25, false);

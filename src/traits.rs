@@ -1,12 +1,27 @@
-use font_kit::canvas::Canvas;
+use std::num::TryFromIntError;
 
-pub trait RowMajorOrder {
-    fn rm_iter(&self) -> impl Iterator<Item = (u16, u16, u16)>;
+pub trait Points {
+    fn to_points(
+        &self,
+        row_size: usize,
+    ) -> Result<impl Iterator<Item = (u16, u16, u16)>, TryFromIntError>;
 }
 
-impl RowMajorOrder for Canvas {
-    fn rm_iter(&self) -> impl Iterator<Item = (u16, u16, u16)> {
-        let temp: u16 = 0;
-        self.pixels.iter().map(move |x| (temp, temp, u16::from(*x)))
+impl Points for Vec<u8> {
+    fn to_points(
+        &self,
+        row_size: usize,
+    ) -> Result<impl Iterator<Item = (u16, u16, u16)>, TryFromIntError> {
+        u16::try_from(row_size)?;
+
+        Ok(self.chunks(row_size).enumerate().flat_map(|(col, chunk)| {
+            chunk.iter().enumerate().map(move |(row, num)| {
+                (
+                    u16::try_from(row).unwrap(),
+                    u16::try_from(col).unwrap(),
+                    u16::from(*num),
+                )
+            })
+        }))
     }
 }

@@ -57,7 +57,7 @@ fn match_char(img: &DynamicImage, font: &Font) -> Result<char, Box<dyn Error>> {
 
 /// Unicode image renderer
 #[derive(Parser, Debug)]
-#[command(version, about, long_about = None)]
+#[command(version, about, long_about = None, disable_version_flag=true)]
 struct Args {
     /// Input image
     #[arg(short, long)]
@@ -70,6 +70,10 @@ struct Args {
     /// Scale of unicode image
     #[arg(short, long, default_value_t = 50)]
     pixels_per_char: u8,
+
+    // Verbose output
+    #[clap(short = 'V', long)]
+    verbose: bool,
 }
 
 fn main() -> Result<(), Box<dyn Error>> {
@@ -81,16 +85,21 @@ fn main() -> Result<(), Box<dyn Error>> {
     let font = font_utils::search_for_font(&args.font)?;
 
     let _sub_images = img_partitions_from(&img, 25, 25, false);
-    println!("font in use: {}", font.name().expect("font has no name"));
 
-    print_to_console(&img.pixels(), img.width() as usize, |(_, _, p)| {
-        p.channels()[0] < 245
-    });
+    if args.verbose {
+        println!("font in use: {}", font.name().expect("font has no name"));
+
+        print_to_console(&img.pixels(), img.width() as usize, |(_, _, p)| {
+            p.channels()[0] < 245
+        });
+    }
 
     let closest_char = match_char(&img, &font)?;
 
     let (metrics, bitmap) = font.rasterize(closest_char, 44.0);
-    print_to_console(&bitmap.iter(), metrics.width, |&x| x > 100);
+    if args.verbose {
+        print_to_console(&bitmap.iter(), metrics.width, |&x| x > 100);
+    }
     println!("matched character for image: {closest_char}");
 
     Ok(())

@@ -75,8 +75,10 @@ struct Args {
 fn main() -> Result<(), Box<dyn Error>> {
     let args = Args::parse();
 
+    let img = image::open(&args.image)
+        .map_err(|_| format!("unable to open {}", args.image))?
+        .grayscale();
     let font = font_utils::search_for_font(&args.font)?;
-    let img = image::open(args.image)?.grayscale();
 
     let _sub_images = img_partitions_from(&img, 25, 25, false);
     println!("font in use: {}", font.name().expect("font has no name"));

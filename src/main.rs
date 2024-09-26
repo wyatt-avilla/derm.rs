@@ -55,22 +55,22 @@ fn match_char(img: &DynamicImage, font: &Font) -> Result<char, Box<dyn Error>> {
 }
 
 fn main() -> Result<(), Box<dyn Error>> {
-    let font_data = std::fs::read("/usr/share/fonts/noto-cjk/NotoSansCJK-Regular.ttc")?;
-
-    let jp = Font::from_bytes(font_data, fontdue::FontSettings::default())?;
-    println!("font in use: {}", jp.name().expect("font has no name"));
-
-    let (metrics, bitmap) = jp.rasterize('䯁', 44.0);
-    print_to_console(&bitmap.iter(), metrics.width, |&x| x > 100);
+    let font = font_utils::search_for_font("/usr/share/fonts/noto-cjk/NotoSansCJK-Regular.ttc")?;
 
     let img = image::open("src/images/smiley.png")?.grayscale();
+
     let _sub_images = img_partitions_from(&img, 25, 25, false);
+    println!("font in use: {}", font.name().expect("font has no name"));
 
     print_to_console(&img.pixels(), img.width() as usize, |(_, _, p)| {
         p.channels()[0] < 245
     });
 
-    println!("matched character for image: {}", match_char(&img, &jp)?);
+    let closest_char = match_char(&img, &font)?;
+
+    let (metrics, bitmap) = font.rasterize(closest_char, 44.0);
+    print_to_console(&bitmap.iter(), metrics.width, |&x| x > 100);
+    println!("matched character for image: {closest_char}");
 
     Ok(())
 }

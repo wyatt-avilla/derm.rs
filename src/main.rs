@@ -8,6 +8,7 @@ use image_utils::img_partitions_from;
 use traits::Points;
 use visualize::print_to_console;
 
+use clap::Parser;
 use fontdue::Font;
 use image::{DynamicImage, GenericImageView, Pixel};
 use std::{
@@ -54,10 +55,28 @@ fn match_char(img: &DynamicImage, font: &Font) -> Result<char, Box<dyn Error>> {
     Ok(best_char)
 }
 
-fn main() -> Result<(), Box<dyn Error>> {
-    let font = font_utils::search_for_font("/usr/share/fonts/noto-cjk/NotoSansCJK-Regular.ttc")?;
+/// Unicode image renderer
+#[derive(Parser, Debug)]
+#[command(version, about, long_about = None)]
+struct Args {
+    /// Input image
+    #[arg(short, long)]
+    image: String,
 
-    let img = image::open("src/images/smiley.png")?.grayscale();
+    /// Font to use during rendering
+    #[arg(short, long, default_value_t = String::from("mono"))]
+    font: String,
+
+    /// Scale of unicode image
+    #[arg(short, long, default_value_t = 50)]
+    pixels_per_char: u8,
+}
+
+fn main() -> Result<(), Box<dyn Error>> {
+    let args = Args::parse();
+
+    let font = font_utils::search_for_font(&args.font)?;
+    let img = image::open(args.image)?.grayscale();
 
     let _sub_images = img_partitions_from(&img, 25, 25, false);
     println!("font in use: {}", font.name().expect("font has no name"));

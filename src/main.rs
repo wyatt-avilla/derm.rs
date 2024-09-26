@@ -5,54 +5,46 @@ mod traits;
 mod visualize;
 
 use image_utils::img_partitions_from;
-use traits::Points;
+use similarity::Points;
+use traits::Pointify;
 use visualize::print_to_console;
 
 use clap::Parser;
 use fontdue::Font;
 use image::{DynamicImage, GenericImageView, Pixel};
-use std::{
-    collections::{HashMap, HashSet},
-    error::Error,
-};
+use std::error::Error;
 
-fn match_char(img: &DynamicImage, font: &Font) -> Result<char, Box<dyn Error>> {
+fn match_char<F, T>(img: &DynamicImage, font: &Font, error_calc: F) -> Result<char, Box<dyn Error>>
+where
+    F: Fn(&Points, &Points) -> T,
+    T: Ord + PartialOrd,
+{
     let img_points = img
         .pixels()
         .filter(|(_, _, p)| p.channels()[0] < 245)
         .map(|(x, y, _)| -> Result<(u16, u16), Box<dyn Error>> {
             Ok((u16::try_from(x)?, u16::try_from(y)?))
         })
-        .collect::<Result<HashSet<_>, _>>()?;
+        .collect::<Result<Points, _>>()?;
 
-    let mut dist_map: HashMap<char, f32> = HashMap::new();
+    Ok(font
+        .chars()
+        .iter()
+        .map(|(c, _)| -> Result<_, Box<dyn Error>> {
+            let (metrics, bitmap) = font.rasterize(*c, img.width() as f32);
 
-    let mut best_dist = f32::INFINITY;
-    let mut best_char = 'x';
+            let font_points: Points = bitmap
+                .to_points(metrics.width)?
+                .filter(|(_, _, p)| *p > 100)
+                .map(|(x, y, _)| (x, y))
+                .collect();
 
-    for (c, _) in font.chars() {
-        let (metrics, bitmap) = font.rasterize(*c, img.width() as f32);
-
-        if metrics.width == 0 {
-            continue;
-        }
-
-        let font_points: HashSet<_> = bitmap
-            .to_points(metrics.width)?
-            .filter(|(_, _, p)| *p > 100)
-            .map(|(x, y, _)| (x, y))
-            .collect();
-
-        let curr_dist = similarity::hausdorff_distance(&img_points, &font_points);
-        dist_map.insert(*c, curr_dist);
-
-        if curr_dist < best_dist {
-            best_dist = curr_dist;
-            best_char = *c;
-        }
-    }
-
-    Ok(best_char)
+            Ok((*c, error_calc(&img_points, &font_points)))
+        })
+        .filter_map(std::result::Result::ok)
+        .min_by(|(_, t1), (_, t2)| t1.cmp(t2))
+        .ok_or(String::from("unable to find minimum"))?
+        .0)
 }
 
 /// Unicode image renderer
@@ -94,7 +86,7 @@ fn main() -> Result<(), Box<dyn Error>> {
         });
     }
 
-    let closest_char = match_char(&img, &font)?;
+    let closest_char = match_char(&img, &font, similarity::hamming_distance)?;
 
     let (metrics, bitmap) = font.rasterize(closest_char, 44.0);
     if args.verbose {

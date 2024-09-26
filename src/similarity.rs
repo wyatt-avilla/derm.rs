@@ -1,1 +1,3 @@
-pub mod hausdorff;
+mod hausdorff;
+
+pub use hausdorff::hausdorff_distance;

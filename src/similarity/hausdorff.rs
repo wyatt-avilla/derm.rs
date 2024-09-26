@@ -5,7 +5,7 @@ fn euclidean_distance(x: (u16, u16), y: (u16, u16)) -> f64 {
         .sqrt()
 }
 
-pub fn distance(sx: &HashSet<(u16, u16)>, sy: &HashSet<(u16, u16)>) -> f32 {
+pub fn hausdorff_distance(sx: &HashSet<(u16, u16)>, sy: &HashSet<(u16, u16)>) -> f32 {
     sx.iter()
         .map(|p_1| {
             #[allow(clippy::cast_possible_truncation)]

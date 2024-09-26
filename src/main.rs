@@ -43,7 +43,7 @@ fn match_char(img: &DynamicImage, font: &Font) -> Result<char, Box<dyn Error>> {
             .map(|(x, y, _)| (x, y))
             .collect();
 
-        let curr_dist = similarity::hausdorff::distance(&img_points, &font_points);
+        let curr_dist = similarity::hausdorff_distance(&img_points, &font_points);
         dist_map.insert(*c, curr_dist);
 
         if curr_dist < best_dist {

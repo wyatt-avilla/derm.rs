@@ -94,7 +94,7 @@ fn main() -> Result<(), Box<dyn Error>> {
 
     let closest_char = match_char(&img, &font, similarity::hamming_distance)?;
 
-    let (metrics, bitmap) = font.rasterize(closest_char, 44.0);
+    let (metrics, bitmap) = font.rasterize(closest_char, f32::from(args.pixels_per_char));
     if args.verbose {
         print_to_console(&bitmap.iter(), metrics.width, |&x| x > 100);
     }

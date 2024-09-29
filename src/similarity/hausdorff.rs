@@ -8,6 +8,24 @@ pub enum Error {
     NoMinimum,
 }
 
+impl std::fmt::Display for Error {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Error::EmptySet => write!(f, "Hausdorff distance isn't well defined for empty sets"),
+            Error::NoMinimum => write!(f, "Unable to find minimum"),
+        }
+    }
+}
+
+impl std::error::Error for Error {
+    fn description(&self) -> &str {
+        match self {
+            Error::EmptySet => "Hausdorff distance isn't well defined for empty sets",
+            Error::NoMinimum => "Unable to find minimum",
+        }
+    }
+}
+
 fn euclidean_distance(x: (u16, u16), y: (u16, u16)) -> f64 {
     f64::from((i32::from(x.0) - i32::from(y.0)).pow(2) + (i32::from(x.1) - i32::from(y.1)).pow(2))
         .sqrt()

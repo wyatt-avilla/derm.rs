@@ -17,7 +17,7 @@ use std::error::Error;
 fn match_char<F, T>(img: &DynamicImage, font: &Font, error_calc: F) -> Result<char, Box<dyn Error>>
 where
     F: Fn(&Points, &Points) -> T,
-    T: Ord + PartialOrd,
+    T: PartialOrd,
 {
     let img_points = img
         .pixels()
@@ -31,6 +31,7 @@ where
         .chars()
         .iter()
         .map(|(c, _)| -> Result<_, Box<dyn Error>> {
+            #[allow(clippy::cast_precision_loss)]
             let (metrics, bitmap) = font.rasterize(*c, img.width() as f32);
 
             let font_points: Points = bitmap
@@ -42,7 +43,7 @@ where
             Ok((*c, error_calc(&img_points, &font_points)))
         })
         .filter_map(std::result::Result::ok)
-        .min_by(|(_, t1), (_, t2)| t1.cmp(t2))
+        .min_by(|(_, t1), (_, t2)| t1.partial_cmp(t2).expect("comparison failed"))
         .ok_or(String::from("unable to find minimum"))?
         .0)
 }

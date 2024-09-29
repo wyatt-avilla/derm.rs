@@ -14,10 +14,15 @@ use fontdue::Font;
 use image::{DynamicImage, GenericImageView, Pixel};
 use std::error::Error;
 
-fn match_char<F, T>(img: &DynamicImage, font: &Font, error_calc: F) -> Result<char, Box<dyn Error>>
+fn match_char<F, T, E>(
+    img: &DynamicImage,
+    font: &Font,
+    error_calc: F,
+) -> Result<char, Box<dyn Error>>
 where
-    F: Fn(&Points, &Points) -> T,
+    F: Fn(&Points, &Points) -> Result<T, E>,
     T: PartialOrd,
+    E: std::error::Error,
 {
     let img_points = img
         .pixels()
@@ -40,7 +45,7 @@ where
                 .map(|(x, y, _)| (x, y))
                 .collect();
 
-            Ok((*c, error_calc(&img_points, &font_points)))
+            Ok((*c, error_calc(&img_points, &font_points)?))
         })
         .filter_map(std::result::Result::ok)
         .min_by(|(_, t1), (_, t2)| t1.partial_cmp(t2).expect("comparison failed"))

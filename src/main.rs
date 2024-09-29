@@ -14,6 +14,17 @@ use fontdue::Font;
 use image::{DynamicImage, GenericImageView, Pixel};
 use std::error::Error;
 
+#[derive(clap::ValueEnum, Clone, Default, Debug, serde::Serialize)]
+#[serde(rename_all = "kebab-case")]
+enum SimilarityMetric {
+    /// Hausdorff Distance
+    #[default]
+    Hausdorff,
+
+    /// Hamming Distance
+    Hamming,
+}
+
 fn match_char<F, T, E>(
     img: &DynamicImage,
     font: &Font,
@@ -69,6 +80,10 @@ struct Args {
     #[arg(short, long, default_value_t = 50)]
     pixels_per_char: u8,
 
+    /// similarity metric
+    #[arg(short, long, default_value_t, value_enum)]
+    similarity_metric: SimilarityMetric,
+
     // Verbose output
     #[clap(short = 'V', long)]
     verbose: bool,
@@ -85,6 +100,7 @@ fn main() -> Result<(), Box<dyn Error>> {
     let _sub_images = img_partitions_from(&img, 25, 25, false);
 
     if args.verbose {
+        println!("similarity metric {:?}", args.similarity_metric);
         println!("font in use: {}", font.name().expect("font has no name"));
 
         print_to_console(&img.pixels(), img.width() as usize, |(_, _, p)| {
@@ -92,7 +108,10 @@ fn main() -> Result<(), Box<dyn Error>> {
         });
     }
 
-    let closest_char = match_char(&img, &font, similarity::hamming_distance)?;
+    let closest_char = match args.similarity_metric {
+        SimilarityMetric::Hausdorff => match_char(&img, &font, similarity::hausdorff_distance)?,
+        SimilarityMetric::Hamming => match_char(&img, &font, similarity::hamming_distance)?,
+    };
 
     let (metrics, bitmap) = font.rasterize(closest_char, f32::from(args.pixels_per_char));
     if args.verbose {

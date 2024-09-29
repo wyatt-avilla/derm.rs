@@ -28,6 +28,7 @@ impl std::error::Error for Error {
     }
 }
 
+#[allow(clippy::module_name_repetitions)]
 pub fn hamming_distance(a: &Points, b: &Points) -> Result<usize> {
     if a.len() != b.len() {
         return Err(Error::Cardinality(a.len(), b.len()));

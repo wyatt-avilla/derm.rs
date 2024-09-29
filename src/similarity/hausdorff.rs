@@ -31,6 +31,7 @@ fn euclidean_distance(x: (u16, u16), y: (u16, u16)) -> f64 {
         .sqrt()
 }
 
+#[allow(clippy::module_name_repetitions)]
 pub fn hausdorff_distance(a: &Points, b: &Points) -> Result<f32> {
     if a.is_empty() || b.is_empty() {
         return Err(Error::EmptySet);

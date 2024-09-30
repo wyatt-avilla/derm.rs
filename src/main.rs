@@ -12,7 +12,6 @@ use visualize::print_to_console;
 use clap::Parser;
 use fontdue::Font;
 use image::{DynamicImage, GenericImageView, Pixel};
-use std::error::Error;
 
 #[derive(clap::ValueEnum, Clone, Default, Debug, serde::Serialize)]
 #[serde(rename_all = "kebab-case")]
@@ -29,24 +28,26 @@ fn match_char<F, T, E>(
     img: &DynamicImage,
     font: &Font,
     error_calc: F,
-) -> Result<char, Box<dyn Error>>
+) -> Result<char, Box<dyn std::error::Error>>
 where
     F: Fn(&Points, &Points) -> Result<T, E>,
     T: PartialOrd,
-    E: std::error::Error,
+    E: std::fmt::Display,
 {
     let img_points = img
         .pixels()
         .filter(|(_, _, p)| p.channels()[0] < 245)
-        .map(|(x, y, _)| -> Result<(u16, u16), Box<dyn Error>> {
-            Ok((u16::try_from(x)?, u16::try_from(y)?))
-        })
+        .map(
+            |(x, y, _)| -> Result<(u16, u16), Box<dyn std::error::Error>> {
+                Ok((u16::try_from(x)?, u16::try_from(y)?))
+            },
+        )
         .collect::<Result<Points, _>>()?;
 
     Ok(font
         .chars()
         .iter()
-        .map(|(c, _)| -> Result<_, Box<dyn Error>> {
+        .map(|(c, _)| -> Result<_, Box<dyn std::error::Error>> {
             #[allow(clippy::cast_precision_loss)]
             let (metrics, bitmap) = font.rasterize(*c, img.width() as f32);
 
@@ -56,7 +57,11 @@ where
                 .map(|(x, y, _)| (x, y))
                 .collect();
 
-            Ok((*c, error_calc(&img_points, &font_points)?))
+            Ok((
+                *c,
+                error_calc(&img_points, &font_points)
+                    .map_err(|e| format!("Error calculation failed: {e}"))?,
+            ))
         })
         .filter_map(std::result::Result::ok)
         .min_by(|(_, t1), (_, t2)| t1.partial_cmp(t2).expect("comparison failed"))
@@ -89,7 +94,7 @@ struct Args {
     verbose: bool,
 }
 
-fn main() -> Result<(), Box<dyn Error>> {
+fn main() -> Result<(), Box<dyn std::error::Error>> {
     let args = Args::parse();
 
     let img = image::open(&args.image)

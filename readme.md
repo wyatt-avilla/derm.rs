@@ -20,3 +20,4 @@ the following options are available:
 
 - [Hausdorff distance](https://en.wikipedia.org/wiki/Hausdorff_distance)
 - [Hamming distance](https://en.wikipedia.org/wiki/Hamming_distance)
+- [Levenshtein distance](https://en.wikipedia.org/wiki/Levenshtein_distance)

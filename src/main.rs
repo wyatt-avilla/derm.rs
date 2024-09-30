@@ -22,6 +22,9 @@ enum SimilarityMetric {
 
     /// Hamming Distance
     Hamming,
+
+    /// Levenshtein Distance
+    Levenshtein,
 }
 
 fn match_char<F, T, E>(
@@ -116,6 +119,9 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let closest_char = match args.similarity_metric {
         SimilarityMetric::Hausdorff => match_char(&img, &font, similarity::hausdorff_distance)?,
         SimilarityMetric::Hamming => match_char(&img, &font, similarity::hamming_distance)?,
+        SimilarityMetric::Levenshtein => match_char(&img, &font, |p1, p2| {
+            Ok::<usize, Box<dyn std::error::Error>>(similarity::levenshtein_distance(p1, p2))
+        })?,
     };
 
     let (metrics, bitmap) = font.rasterize(closest_char, f32::from(args.pixels_per_char));

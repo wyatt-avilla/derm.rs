@@ -137,11 +137,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     closest_chars
         .chunks(rowsize as usize)
         .into_iter()
-        .map(|c| {
-            c.into_iter()
-                .map(|p| if let Ok(v) = p { v } else { ' ' })
-                .join("")
-        })
+        .map(|c| c.into_iter().map(|p| p.unwrap_or(' ')).join(""))
         .for_each(|r| println!("| {r} |"));
 
     Ok(())

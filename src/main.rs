@@ -5,13 +5,14 @@ mod traits;
 mod visualize;
 
 use image_utils::img_partitions_from;
+use itertools::Itertools;
 use similarity::Points;
 use traits::Pointify;
 use visualize::print_to_console;
 
 use clap::Parser;
 use fontdue::Font;
-use image::{DynamicImage, GenericImageView, Pixel};
+use image::{DynamicImage, GenericImageView, Pixel, SubImage};
 
 #[derive(clap::ValueEnum, Clone, Default, Debug, serde::Serialize)]
 #[serde(rename_all = "kebab-case")]
@@ -28,7 +29,7 @@ enum SimilarityMetric {
 }
 
 fn match_char<F, T, E>(
-    img: &DynamicImage,
+    img: &SubImage<&DynamicImage>,
     font: &Font,
     error_calc: F,
 ) -> Result<char, Box<dyn std::error::Error>>
@@ -105,8 +106,6 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         .grayscale();
     let font = font_utils::search_for_font(&args.font)?;
 
-    let _sub_images = img_partitions_from(&img, 25, 25, false);
-
     if args.verbose {
         println!("similarity metric {:?}", args.similarity_metric);
         println!("font in use: {}", font.name().expect("font has no name"));
@@ -116,19 +115,34 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         });
     }
 
-    let closest_char = match args.similarity_metric {
-        SimilarityMetric::Hausdorff => match_char(&img, &font, similarity::hausdorff_distance)?,
-        SimilarityMetric::Hamming => match_char(&img, &font, similarity::hamming_distance)?,
-        SimilarityMetric::Levenshtein => match_char(&img, &font, |p1, p2| {
-            Ok::<usize, Box<dyn std::error::Error>>(similarity::levenshtein_distance(p1, p2))
-        })?,
-    };
+    let keep_partials = false;
 
-    let (metrics, bitmap) = font.rasterize(closest_char, f32::from(args.pixels_per_char));
-    if args.verbose {
-        print_to_console(&bitmap.iter(), metrics.width, |&x| x > 100);
-    }
-    println!("matched character for image: {closest_char}");
+    let sub_images = img_partitions_from(
+        &img,
+        args.pixels_per_char.into(),
+        args.pixels_per_char.into(),
+        keep_partials,
+    );
+
+    let closest_chars = sub_images.iter().map(|s| match args.similarity_metric {
+        SimilarityMetric::Hausdorff => match_char(s, &font, similarity::hausdorff_distance),
+        SimilarityMetric::Hamming => match_char(s, &font, similarity::hamming_distance),
+        SimilarityMetric::Levenshtein => match_char(s, &font, |p1, p2| {
+            Ok::<usize, Box<dyn std::error::Error>>(similarity::levenshtein_distance(p1, p2))
+        }),
+    });
+
+    let rowsize = img.width() / u32::from(args.pixels_per_char) + u32::from(keep_partials);
+
+    closest_chars
+        .chunks(rowsize as usize)
+        .into_iter()
+        .map(|c| {
+            c.into_iter()
+                .map(|p| if let Ok(v) = p { v } else { ' ' })
+                .join("")
+        })
+        .for_each(|r| println!("| {r} |"));
 
     Ok(())
 }

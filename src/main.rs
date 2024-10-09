@@ -13,6 +13,7 @@ use visualize::print_to_console;
 use clap::Parser;
 use fontdue::Font;
 use image::{DynamicImage, GenericImageView, Pixel, SubImage};
+use rayon::prelude::*;
 use unicode_width::UnicodeWidthChar;
 
 #[derive(clap::ValueEnum, Clone, Default, Debug, serde::Serialize)]
@@ -33,7 +34,7 @@ fn match_char<F, T, E>(
     img: &SubImage<&DynamicImage>,
     font: &Font,
     error_calc: F,
-) -> Result<char, Box<dyn std::error::Error>>
+) -> Result<char, Box<dyn std::error::Error + Sync + Send>>
 where
     F: Fn(&Points, &Points) -> Result<T, E>,
     T: PartialOrd,
@@ -43,7 +44,7 @@ where
         .pixels()
         .filter(|(_, _, p)| p.channels()[0] < 245)
         .map(
-            |(x, y, _)| -> Result<(u16, u16), Box<dyn std::error::Error>> {
+            |(x, y, _)| -> Result<(u16, u16), Box<dyn std::error::Error + Send + Sync>> {
                 Ok((u16::try_from(x)?, u16::try_from(y)?))
             },
         )
@@ -126,20 +127,22 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         keep_partials,
     );
 
-    let closest_chars = sub_images.iter().map(|s| match args.similarity_metric {
-        SimilarityMetric::Hausdorff => match_char(s, &font, similarity::hausdorff_distance),
-        SimilarityMetric::Hamming => match_char(s, &font, similarity::hamming_distance),
-        SimilarityMetric::Levenshtein => match_char(s, &font, |p1, p2| {
-            Ok::<usize, Box<dyn std::error::Error>>(similarity::levenshtein_distance(p1, p2))
-        }),
-    });
+    let closest_chars: Vec<_> = sub_images
+        .par_iter()
+        .map(|s| match args.similarity_metric {
+            SimilarityMetric::Hausdorff => match_char(s, &font, similarity::hausdorff_distance),
+            SimilarityMetric::Hamming => match_char(s, &font, similarity::hamming_distance),
+            SimilarityMetric::Levenshtein => match_char(s, &font, |p1, p2| {
+                Ok::<usize, Box<dyn std::error::Error>>(similarity::levenshtein_distance(p1, p2))
+            }),
+        })
+        .collect();
 
     let rowsize = img.width() / u32::from(args.pixels_per_char) + u32::from(keep_partials);
 
     closest_chars
         .chunks(rowsize as usize)
-        .into_iter()
-        .map(|c| c.into_iter().map(|p| p.unwrap_or(' ')).join(""))
+        .map(|c| c.iter().map(|p| p.as_ref().unwrap_or(&' ')).join(""))
         .for_each(|r| println!("| {r} |"));
 
     Ok(())

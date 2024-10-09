@@ -9,3 +9,4 @@ fontdue = { version = "0.9.2", features = ["parallel"] }
 image = "0.25.2"
 itertools = "0.13.0"
 serde = { version = "1.0.210", features = ["derive"] }
+unicode-width = "0.2.0"

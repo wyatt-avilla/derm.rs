@@ -13,6 +13,7 @@ use visualize::print_to_console;
 use clap::Parser;
 use fontdue::Font;
 use image::{DynamicImage, GenericImageView, Pixel, SubImage};
+use unicode_width::UnicodeWidthChar;
 
 #[derive(clap::ValueEnum, Clone, Default, Debug, serde::Serialize)]
 #[serde(rename_all = "kebab-case")]
@@ -51,6 +52,7 @@ where
     Ok(font
         .chars()
         .iter()
+        .filter(|(c, _)| c.width().is_some_and(|w| w == 2))
         .map(|(c, _)| -> Result<_, Box<dyn std::error::Error>> {
             #[allow(clippy::cast_precision_loss)]
             let (metrics, bitmap) = font.rasterize(*c, img.width() as f32);
